@@ -23,26 +23,14 @@ int handleFastMa;
 int handleMiddleMa;
 int handleSlowMa;
 
-
-int fastMaPeriod = 3;        // Period of fast smoothing average filter 
-int middleMaPeriod = 21;     // Period of Middle smoothing average filter   
-int slowMaPeriod = 50;       // Period of slow smoothing average filter
-int movingAvgHistroy =5;     // How many ticks the moving average should be aligned 
-
-
 //+---------------------------------------------------------------------------------+ 
 //|  Init the Moving Average indicator module                                       | 
 //+---------------------------------------------------------------------------------+ 
-void MAI_init(int inputFMaPrd, int inputMMaPrd, int inputSMaPrd, int inputMaHistroy) 
+void MAI_init() 
   { 
-      fastMaPeriod = inputFMaPrd;
-      middleMaPeriod = inputMMaPrd;
-      slowMaPeriod = inputSMaPrd;
-      movingAvgHistroy = inputMaHistroy;
-      
-      handleFastMa = iMA(_Symbol,PERIOD_CURRENT,fastMaPeriod,0,MODE_SMMA,PRICE_MEDIAN);
-      handleMiddleMa = iMA(_Symbol,PERIOD_CURRENT,middleMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
-      handleSlowMa = iMA(_Symbol,PERIOD_CURRENT,slowMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
+      handleFastMa = iMA(_Symbol,PERIOD_CURRENT,inFastMaPeriod,0,MODE_SMMA,PRICE_MEDIAN);
+      handleMiddleMa = iMA(_Symbol,PERIOD_CURRENT,inMiddleMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
+      handleSlowMa = iMA(_Symbol,PERIOD_CURRENT,inSlowMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
   }
 
 //+---------------------------------------------------------------------------------+ 
@@ -97,35 +85,6 @@ int MAI_getMovingAverageVote(double curPrice)
    return (ret); 
   } 
   
-  
-//+---------------------------------------------------------------------------------+ 
-//|  Return the vote from Moving average level vs price    | 
-//+---------------------------------------------------------------------------------+ 
-int MAI_getPriceDiffVote(double curPrice) 
-  { 
-   int ret = NO_SELL_BUY;
    
-   double maFast[];
-
-   
-   
-   /* Fetch the data from the indicator */
-   CopyBuffer(handleFastMa,MAIN_LINE,1,10,maFast);
-   
-   double ratioOfPriceDiff = MathAbs(((maFast[0] - curPrice) / maFast[0]) * 100);
-   
-   if (ratioOfPriceDiff < 0.2) 
-   {  
-      // Moving Average is giving good to go to sell
-       ret = SELL_OKAY;
-   }
-         else
-   {  
-      // Do nothing
-   }
-   
-   
-   return (ret); 
-  }  
 
 //+------------------------------------------------------------------+

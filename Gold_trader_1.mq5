@@ -11,28 +11,16 @@
 #include <Trade\PositionInfo.mqh>
 #include "MAI.mqh"
 #include "OPC.mqh"
-#include "PBI.mqh"
 #include "DBG.mqh"
 
 
 //+------------------------------------------------------------------+
 //| Global variables                                                 |
 //+------------------------------------------------------------------+
-
 int handleRsi;
 CTrade handleTrade;
-
-int handleFractals;
-
 datetime lastbar_timeopen;
-
 double previousProfit[10] = {0}; // Assuming that maximum number of positions cannot exceed 10
-
-
-
-double CurrentTakeProfit;
-double CurrentStopLoss;
-
 
 //+------------------------------------------------------------------+
 //| Input parameters                                                 |
@@ -40,9 +28,9 @@ double CurrentStopLoss;
 input group "Trading Inputs"
 input double               lotSizeBuy = 0.02;           // Lot size to open BUY position
 input double               lotSizeSell = 0.01;          // Lot size to open SELL position
+input int                  maxNuOfPositions = 5;        // Maximum number of positions can exist together
 input double               requiredProfit = 3;         // The minimum profit required from the position
 input bool                 trailingStopLoss = true;     // Enable trailing stop loss
-input int                  maxNuOfPositions = 5;        // Maximum number of positions can exist together
 input double               TrailingStopProfit = 0.5;    // How much the price should drop to close the position above the profit
 
 input group "Moving average Indicator and RSI Inputs"
@@ -50,7 +38,6 @@ input int                  RsiPeriod=10;                 // Period of RSI
 input int                  inFastMaPeriod=3;             // Period of fast smoothing average filter
 input int                  inMiddleMaPeriod=21;          // Period of Middle smoothing average filter
 input int                  inSlowMaPeriod=50;            // Period of slow smoothing average filter
-input int                  inMovingAvgHistroy = 5;       // How many ticks the moving average should be aligned
 
 
 //+------------------------------------------------------------------+
@@ -59,9 +46,8 @@ input int                  inMovingAvgHistroy = 5;       // How many ticks the m
 int OnInit()
   {
    handleRsi = iRSI(_Symbol,PERIOD_CURRENT,RsiPeriod,PRICE_CLOSE);
-   MAI_init(inFastMaPeriod,inMiddleMaPeriod,inSlowMaPeriod,inMovingAvgHistroy);
+   MAI_init();
    OPC_init();
-   PBI_init();
 
    return(INIT_SUCCEEDED);
   }
@@ -83,9 +69,7 @@ void OnTick()
 
    if((isNewBar(false) == true) && (positions < maxNuOfPositions) && (getTimeOk()==true)) // Process the bar only once and when there is no enough existing orders
      {
-
       checkForTradeChance();
-
      }
 
    OPC_fillPositionsData();
@@ -160,51 +144,29 @@ void checkForTradeChance()
 
    double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double askPrice = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
-   
-   
 
-/*
-   if(MAI_getMovingAverageVote(bidPrice) != NO_SELL_BUY)
-     {
-      if(MAI_getPriceDiffVote(bidPrice) != NO_SELL_BUY)
-        {
-         handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-         PositionsCount = PositionsTotal();
-         position.SelectByIndex(PositionsCount-1);
-         PositionId = position.Identifier(); // now we know the ticket of the opened position
-
+   if (getRsiRangeOk() == true)
+   {
+      if(MAI_getMovingAverageVote(askPrice) == BUY_OKAY)
+      {
+         Print("Buying ...");
          handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
          PositionsCount = PositionsTotal();
          position.SelectByIndex(PositionsCount-1);
          PositionId = position.Identifier(); // now we know the ticket of the opened position
-        }
+      }
 
-     }
-*/       
+      
+      if(MAI_getMovingAverageVote(bidPrice) == SELL_OKAY)
+      {
+         Print("Selling ...");
+         handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
+         PositionsCount = PositionsTotal();
+         position.SelectByIndex(PositionsCount-1);
+         PositionId = position.Identifier(); // now we know the ticket of the opened position
+      }
 
-         
-         if (getRsiRangeOk() == true)
-         {
-            if(MAI_getMovingAverageVote(askPrice) == BUY_OKAY)
-            {
-               Print("Buying ...");
-               handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
-               PositionsCount = PositionsTotal();
-               position.SelectByIndex(PositionsCount-1);
-               PositionId = position.Identifier(); // now we know the ticket of the opened position
-            }
-
-            
-            if(MAI_getMovingAverageVote(bidPrice) == SELL_OKAY)
-            {
-               Print("Selling ...");
-               handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-               PositionsCount = PositionsTotal();
-               position.SelectByIndex(PositionsCount-1);
-               PositionId = position.Identifier(); // now we know the ticket of the opened position
-            }
-
-         }
+   }
         
   }
 
@@ -267,27 +229,6 @@ bool getTimeOk()
 
    return (true);
   }
-
-
-//+-------------------------------------------------------------------------------------+
-//|  Return the Okay from price range prespective                                       |
-//+-------------------------------------------------------------------------------------+
-bool getPriceRangeOk()
-  {
-   bool ret = false;
-
-
-   double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
-
-   if((bidPrice < 2065) && (bidPrice > 1900))
-     {
-      ret = true;
-     }
-
-   return (ret);
-  }
-
-
 
 //+-------------------------------------------------------------------------------------+
 //|  Return the Okay from RSI range prespective                                         |

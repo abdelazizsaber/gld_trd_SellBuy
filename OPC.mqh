@@ -22,7 +22,6 @@ struct PositionData
   {
    bool              empty; // To mark if the current index is empty or not
    long              positionID; // Ticket or ID of the position
-   int               positionType; // sell or buy
    double            positionCurProfit;
    double            positionMaxProfit;
    double            takeProfit;
@@ -46,7 +45,6 @@ void OPC_init(void)
       {  
          strCurrentPositions[i].empty = true;
          strCurrentPositions[i].positionID = 0;
-         strCurrentPositions[i].positionType = NO_SELL_BUY;
          strCurrentPositions[i].positionCurProfit = 0;
          strCurrentPositions[i].positionMaxProfit = 0;
          strCurrentPositions[i].takeProfit = 0;
@@ -70,8 +68,7 @@ void OPC_fillPositionsData(void)
            {
                long posId = PositionGetInteger(POSITION_TICKET);
                if(posIdExist(posId) == false) // Check if we have this ID stored already
-               {
-               
+               {  
                   fillNewID(posId); // Fill new ID for the selected position by index
                }
            }
@@ -99,7 +96,7 @@ void OPC_cntrlOpenPositions(void)
             bool inLoss = false;
             
             // If we are buying of selling
-            if(strCurrentPositions[i].positionType == BUY_OKAY)
+            if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
             {            
                // Check if we are in loss direction or not
                if(curPrice < strCurrentPositions[i].stopLoss)
@@ -108,7 +105,7 @@ void OPC_cntrlOpenPositions(void)
                }
             }
             
-            else if(strCurrentPositions[i].positionType == SELL_OKAY)
+            else if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
             {              
                // Check if we are in loss direction or not
                if(curPrice > strCurrentPositions[i].stopLoss)
@@ -215,13 +212,11 @@ void fillNewID(long id)
          if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == BUY_OKAY)
          {
             strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,1);
-            strCurrentPositions[curPositionIndex].positionType = BUY_OKAY;
          }
          
          else if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == SELL_OKAY)
          {
             strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,1);
-            strCurrentPositions[curPositionIndex].positionType = SELL_OKAY;
          }
          else
          {
@@ -241,7 +236,6 @@ void fillNewID(long id)
 void deletePosByIndex(long index)
   {
       strCurrentPositions[index].positionID = 0;
-      strCurrentPositions[index].positionType = NO_SELL_BUY;
       strCurrentPositions[index].positionCurProfit = 0;
       strCurrentPositions[index].empty = true;
       strCurrentPositions[index].positionMaxProfit = 0;
