@@ -47,9 +47,9 @@ input double               TrailingStopProfit = 0.5;    // How much the price sh
 
 input group "Moving average Indicator and RSI Inputs"
 input int                  RsiPeriod=10;                 // Period of RSI  
-input int                  inFastMaPeriod=21;            // Period of fast smoothing average filter
-input int                  inMiddleMaPeriod=50;          // Period of Middle smoothing average filter
-input int                  inSlowMaPeriod=200;           // Period of slow smoothing average filter
+input int                  inFastMaPeriod=3;             // Period of fast smoothing average filter
+input int                  inMiddleMaPeriod=21;          // Period of Middle smoothing average filter
+input int                  inSlowMaPeriod=50;            // Period of slow smoothing average filter
 input int                  inMovingAvgHistroy = 5;       // How many ticks the moving average should be aligned
 
 
@@ -181,38 +181,31 @@ void checkForTradeChance()
 
      }
 */       
-         if ((PBI_getPriceBoundryVote(bidPrice) == SELL_OKAY) && (getRsiRangeOk() == true))
-         {
-            Print("Selling...");
-            handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-            PositionsCount = PositionsTotal();
-            position.SelectByIndex(PositionsCount-1);
-            PositionId = position.Identifier(); // now we know the ticket of the opened position
-         }
+
          
-         if ((PBI_getPriceBoundryVote(bidPrice) == BUY_OKAY) && (getRsiRangeOk() == true))
+         if (getRsiRangeOk() == true)
          {
-            Print("Buying...");
-            handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
-            PositionsCount = PositionsTotal();
-            position.SelectByIndex(PositionsCount-1);
-            PositionId = position.Identifier(); // now we know the ticket of the opened position
-         }
-         
-         if ((PBI_getPriceBoundryVote(bidPrice) == SELL_BUY_OKAY) && (getRsiRangeOk() == true))
-         {
-            handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
-            PositionsCount = PositionsTotal();
-            position.SelectByIndex(PositionsCount-1);
-            PositionId = position.Identifier(); // now we know the ticket of the opened position
+            if(MAI_getMovingAverageVote(askPrice) == BUY_OKAY)
+            {
+               Print("Buying ...");
+               handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
+               PositionsCount = PositionsTotal();
+               position.SelectByIndex(PositionsCount-1);
+               PositionId = position.Identifier(); // now we know the ticket of the opened position
+            }
+
             
-            Print("Selling and Buying...");
-            handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-            PositionsCount = PositionsTotal();
-            position.SelectByIndex(PositionsCount-1);
-            PositionId = position.Identifier(); // now we know the ticket of the opened position
+            if(MAI_getMovingAverageVote(bidPrice) == SELL_OKAY)
+            {
+               Print("Selling ...");
+               handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
+               PositionsCount = PositionsTotal();
+               position.SelectByIndex(PositionsCount-1);
+               PositionId = position.Identifier(); // now we know the ticket of the opened position
+            }
+
          }
-         
+        
   }
 
 //+-------------------------------------------------------------------------------------+

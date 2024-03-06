@@ -7,7 +7,6 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 
-
 //+------------------------------------------------------------------+
 //| Macros                                                           |
 //+------------------------------------------------------------------+
@@ -16,6 +15,7 @@
 #define BUY_OKAY           1
 #define NO_SELL_BUY        0
 
+
 //+------------------------------------------------------------------+
 //| Global variables                                                 |
 //+------------------------------------------------------------------+
@@ -23,10 +23,11 @@ int handleFastMa;
 int handleMiddleMa;
 int handleSlowMa;
 
-int fastMaPeriod = 21;       // Period of fast smoothing average filter 
-int middleMaPeriod = 50;     // Period of Middle smoothing average filter   
-int slowMaPeriod = 200;       // Period of slow smoothing average filter
-int movingAvgHistroy =5;   // How many ticks the moving average should be aligned 
+
+int fastMaPeriod = 3;        // Period of fast smoothing average filter 
+int middleMaPeriod = 21;     // Period of Middle smoothing average filter   
+int slowMaPeriod = 50;       // Period of slow smoothing average filter
+int movingAvgHistroy =5;     // How many ticks the moving average should be aligned 
 
 
 //+---------------------------------------------------------------------------------+ 
@@ -39,7 +40,7 @@ void MAI_init(int inputFMaPrd, int inputMMaPrd, int inputSMaPrd, int inputMaHist
       slowMaPeriod = inputSMaPrd;
       movingAvgHistroy = inputMaHistroy;
       
-      handleFastMa = iMA(_Symbol,PERIOD_CURRENT,fastMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
+      handleFastMa = iMA(_Symbol,PERIOD_CURRENT,fastMaPeriod,0,MODE_SMMA,PRICE_MEDIAN);
       handleMiddleMa = iMA(_Symbol,PERIOD_CURRENT,middleMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
       handleSlowMa = iMA(_Symbol,PERIOD_CURRENT,slowMaPeriod,0,MODE_SMMA,PRICE_CLOSE);
   }
@@ -55,45 +56,44 @@ int MAI_getMovingAverageVote(double curPrice)
    double maMiddle[];
    double maSlow[];
    
-   double slopeValueDiff = 0.0019;
+   double closePriceLastCandle;
+   double openPriceLastCandle;
+
    
    /* Fetch the data from the indicator */
-   CopyBuffer(handleFastMa,MAIN_LINE,1,10,maFast);
-   CopyBuffer(handleMiddleMa,MAIN_LINE,1,10,maMiddle);
-   CopyBuffer(handleSlowMa,MAIN_LINE,1,10,maSlow);
+   CopyBuffer(handleFastMa,MAIN_LINE,0,1,maFast);
+   CopyBuffer(handleMiddleMa,MAIN_LINE,1,1,maMiddle);
+   CopyBuffer(handleSlowMa,MAIN_LINE,1,1,maSlow);
+
+
+   closePriceLastCandle = iClose(_Symbol,PERIOD_CURRENT,1);
+   openPriceLastCandle = iOpen(_Symbol,PERIOD_CURRENT,1);
    
-   Print(maFast[0]- maFast[movingAvgHistroy]);
    
-   if ( ((maFast[0] > maMiddle[0]) && (maMiddle[0] > maSlow[0])) && 
-        ((maFast[movingAvgHistroy]- maFast[0]) > slopeValueDiff) && 
-        ((maFast[movingAvgHistroy] > maMiddle[movingAvgHistroy]) && (maMiddle[movingAvgHistroy] > maSlow[movingAvgHistroy])) ) // If the Moving averages are lined up for the histroy period
+   
+   if((maFast[0] > maMiddle[0]) && (maMiddle[0] > maSlow[0]) && (closePriceLastCandle > maFast[0]) )
    {
-      if (curPrice > maFast[0]) // Second condition: the price has to be above the fastest moving average
+   /* Up trend detected */
+   
+      if (closePriceLastCandle > openPriceLastCandle) // Candle is bull
       {  
-         // Moving Average is giving good to go to buy
          ret = BUY_OKAY;
       }
-      else
-      {  
-         // Do nothing
-      }
+      
    }
-   
-   else if ( ((maFast[0] < maMiddle[0]) && (maMiddle[0] < maSlow[0])) &&
-             ((maFast[0]- maFast[movingAvgHistroy]) > slopeValueDiff) &&  
-             ((maFast[movingAvgHistroy] < maMiddle[movingAvgHistroy]) && (maMiddle[movingAvgHistroy] < maSlow[movingAvgHistroy]))  ) // If the Moving averages are lined up
+   else if ((maFast[0] < maMiddle[0]) && (maMiddle[0] < maSlow[0]) && (closePriceLastCandle < maFast[0]))
    {
-      if (curPrice < maFast[0]) // Second condition: the price has to be below the fastest moving average
-      {  
-         // Moving Average is giving good to go to sell
-          ret = SELL_OKAY;
-      }
-            else
-      {  
-         // Do nothing
-      }
+   /* Up trend detected */
+      if (closePriceLastCandle < openPriceLastCandle) // Candle is bear
+         { 
+            ret = SELL_OKAY;
+         }
    }
-   
+   else
+   {
+   }
+
+
    return (ret); 
   } 
   

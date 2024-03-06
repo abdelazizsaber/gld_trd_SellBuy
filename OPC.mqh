@@ -22,10 +22,12 @@ struct PositionData
   {
    bool              empty; // To mark if the current index is empty or not
    long              positionID; // Ticket or ID of the position
+   int               positionType; // sell or buy
    double            positionCurProfit;
    double            positionMaxProfit;
    double            takeProfit;
    double            swap;
+   double            stopLoss;
   };
  
 PositionData strCurrentPositions[MAX_ALLOWED_TRADES];
@@ -44,10 +46,12 @@ void OPC_init(void)
       {  
          strCurrentPositions[i].empty = true;
          strCurrentPositions[i].positionID = 0;
+         strCurrentPositions[i].positionType = NO_SELL_BUY;
          strCurrentPositions[i].positionCurProfit = 0;
          strCurrentPositions[i].positionMaxProfit = 0;
          strCurrentPositions[i].takeProfit = 0;
          strCurrentPositions[i].swap = 0;
+         strCurrentPositions[i].stopLoss = 0;
       }     
   }
  
@@ -82,18 +86,45 @@ void OPC_fillPositionsData(void)
 //+---------------------------------------------------------------------------------+
 void OPC_cntrlOpenPositions(void)
   {
+      
+      
       for(int i = 0; i<MAX_ALLOWED_TRADES; i++)
       {  
          if(strCurrentPositions[i].empty == false)
          {
+            long curTicket = strCurrentPositions[i].positionID;
+            position.SelectByTicket(curTicket); // Select the position
+            
+            double curPrice = PositionGetDouble(POSITION_PRICE_CURRENT);
+            bool inLoss = false;
+            
+            // If we are buying of selling
+            if(strCurrentPositions[i].positionType == BUY_OKAY)
+            {            
+               // Check if we are in loss direction or not
+               if(curPrice < strCurrentPositions[i].stopLoss)
+               {
+                  inLoss = true;
+               }
+            }
+            
+            else if(strCurrentPositions[i].positionType == SELL_OKAY)
+            {              
+               // Check if we are in loss direction or not
+               if(curPrice > strCurrentPositions[i].stopLoss)
+               {
+                  inLoss = true;
+               }
+            }
+            else
+            {
+            }
+            
             double deltaProfit = strCurrentPositions[i].positionMaxProfit - strCurrentPositions[i].positionCurProfit; // Delta of the price between maximum profit and current profit
             double actualCurProfit = strCurrentPositions[i].positionCurProfit - MathAbs(strCurrentPositions[i].swap);
             
-            if((actualCurProfit > requiredProfit) && (deltaProfit >= TrailingStopProfit))
+            if(((actualCurProfit > requiredProfit) && (deltaProfit >= TrailingStopProfit)) || (inLoss == true))
             {
-               long curTicket = strCurrentPositions[i].positionID;
-               
-               position.SelectByTicket(curTicket);
                if(handleTrade.PositionClose(curTicket) == true)
                {  
                   Print("Closing trade Successfull");
@@ -117,7 +148,7 @@ void OPC_cntrlOpenPositions(void)
          }
       } 
      
-      Comment(StringFormat("id = %G\ncurProfit = %G\nmaxProfit = %d",strCurrentPositions[0].positionID,strCurrentPositions[0].positionCurProfit,strCurrentPositions[0].positionMaxProfit));
+      Comment(StringFormat("id = %G\ncurProfit = %G\nmaxProfit = %G",strCurrentPositions[0].positionID,strCurrentPositions[0].positionCurProfit,strCurrentPositions[0].positionMaxProfit));
 
 
   }  
@@ -173,10 +204,29 @@ void fillNewID(long id)
       {
          double curSwap = PositionGetDouble(POSITION_SWAP);
          
+
+         
          strCurrentPositions[curPositionIndex].positionID = id;
          strCurrentPositions[curPositionIndex].positionCurProfit = position.Profit();
          strCurrentPositions[curPositionIndex].swap = curSwap;
          strCurrentPositions[curPositionIndex].empty = false;
+         
+         // If we are buying of selling
+         if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == BUY_OKAY)
+         {
+            strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,1);
+            strCurrentPositions[curPositionIndex].positionType = BUY_OKAY;
+         }
+         
+         else if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == SELL_OKAY)
+         {
+            strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,1);
+            strCurrentPositions[curPositionIndex].positionType = SELL_OKAY;
+         }
+         else
+         {
+            // Cannot happen
+         }
       }
       else
       {
@@ -191,11 +241,13 @@ void fillNewID(long id)
 void deletePosByIndex(long index)
   {
       strCurrentPositions[index].positionID = 0;
+      strCurrentPositions[index].positionType = NO_SELL_BUY;
       strCurrentPositions[index].positionCurProfit = 0;
       strCurrentPositions[index].empty = true;
       strCurrentPositions[index].positionMaxProfit = 0;
       strCurrentPositions[index].takeProfit = 0;
-      strCurrentPositions[index].swap = 0;         
+      strCurrentPositions[index].swap = 0; 
+      strCurrentPositions[index].stopLoss = 0;        
   }
  
  
@@ -203,8 +255,7 @@ void deletePosByIndex(long index)
 //|  Update Positions data (profit and maximum profit)                              |
 //+---------------------------------------------------------------------------------+
 void UpdatePosData(void)
-  {
-   
+  {    
       for(int i = 0; i<MAX_ALLOWED_TRADES; i++)
       {  
          if(strCurrentPositions[i].empty == false)
@@ -215,6 +266,7 @@ void UpdatePosData(void)
             }
             else
             {
+
                strCurrentPositions[i].positionCurProfit = position.Profit();
                
                double curSwap = PositionGetDouble(POSITION_SWAP);
