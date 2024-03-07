@@ -29,9 +29,10 @@ input group "Trading Inputs"
 input double               lotSizeBuy = 0.02;           // Lot size to open BUY position
 input double               lotSizeSell = 0.01;          // Lot size to open SELL position
 input int                  maxNuOfPositions = 5;        // Maximum number of positions can exist together
-input double               requiredProfit = 3;         // The minimum profit required from the position
+input double               requiredProfit = 3;          // The minimum profit required from the position
 input bool                 trailingStopLoss = true;     // Enable trailing stop loss
 input double               TrailingStopProfit = 0.5;    // How much the price should drop to close the position above the profit
+input uint                 inNuOfCandlesForSL = 3;      // How much candles used to calculate the stop loss level (min or max of price among them)
 
 input group "Moving average Indicator and RSI Inputs"
 input int                  RsiPeriod=10;                 // Period of RSI  
