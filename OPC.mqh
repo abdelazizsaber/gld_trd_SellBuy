@@ -211,17 +211,20 @@ void fillNewID(long id)
          // If we are buying of selling
          if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == BUY_OKAY)
          {
-            strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,1);
+            strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,1) - (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
          }
          
          else if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == SELL_OKAY)
          {
-            strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,1);
+            strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,1) + (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
          }
          else
          {
             // Cannot happen
          }
+         
+         // Draw a line indicating stop loss
+         ObjectCreate(0,"Stop Loss",OBJ_HLINE,0,0,strCurrentPositions[curPositionIndex].stopLoss);
       }
       else
       {

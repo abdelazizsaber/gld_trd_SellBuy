@@ -81,6 +81,7 @@ void OnTick()
 void OnTrade()
   {
 //---
+   bool breakpoint;
 
   }
 //+------------------------------------------------------------------+
@@ -138,10 +139,7 @@ bool isNewBar(const bool print_log=true)
 //+------------------------------------------------------------------+
 void checkForTradeChance()
   {
-
-   uint PositionsCount = 0;
-   long PositionId = 0;
-
+  
    double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double askPrice = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
 
@@ -151,21 +149,13 @@ void checkForTradeChance()
       {
          Print("Buying ...");
          handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
-         PositionsCount = PositionsTotal();
-         position.SelectByIndex(PositionsCount-1);
-         PositionId = position.Identifier(); // now we know the ticket of the opened position
       }
-
-      
+  
       if(MAI_getMovingAverageVote(bidPrice) == SELL_OKAY)
       {
          Print("Selling ...");
          handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-         PositionsCount = PositionsTotal();
-         position.SelectByIndex(PositionsCount-1);
-         PositionId = position.Identifier(); // now we know the ticket of the opened position
       }
-
    }
         
   }
