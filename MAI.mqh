@@ -62,7 +62,7 @@ int MAI_getMovingAverageVote(double curPrice)
    if((maFast[0] > maMiddle[0]) && (maMiddle[0] > maSlow[0]) && (closePriceLastCandle > maFast[0]) )
    {
    /* Up trend detected */
-   
+      Print("Up trend detected");
       if (closePriceLastCandle > openPriceLastCandle) // Candle is bull
       {  
          ret = BUY_OKAY;
@@ -71,7 +71,8 @@ int MAI_getMovingAverageVote(double curPrice)
    }
    else if ((maFast[0] < maMiddle[0]) && (maMiddle[0] < maSlow[0]) && (closePriceLastCandle < maFast[0]))
    {
-   /* Up trend detected */
+      /* Down trend detected */
+      Print("Down trend detected");
       if (closePriceLastCandle < openPriceLastCandle) // Candle is bear
          { 
             ret = SELL_OKAY;
@@ -85,6 +86,26 @@ int MAI_getMovingAverageVote(double curPrice)
    return (ret); 
   } 
   
+//+---------------------------------------------------------------------------------+ 
+//|  Return the vote from Moving average conditions are met for buy/sell/nothing    | 
+//+---------------------------------------------------------------------------------+ 
+double MAI_getMovingAverageSL() 
+  { 
+   double ret = 0;
    
+   double maMiddle[];
+   double maSlow[];
+   
+   
+   /* Fetch the data from the indicator */
+   CopyBuffer(handleMiddleMa,MAIN_LINE,1,1,maMiddle);
+   CopyBuffer(handleSlowMa,MAIN_LINE,1,1,maSlow);
+
+
+   ret = maMiddle[0];
+   
+
+   return (ret); 
+  }    
 
 //+------------------------------------------------------------------+

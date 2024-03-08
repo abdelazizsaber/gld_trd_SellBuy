@@ -32,7 +32,8 @@ input int                  maxNuOfPositions = 5;        // Maximum number of pos
 input double               requiredProfit = 3;          // The minimum profit required from the position
 input bool                 trailingStopLoss = true;     // Enable trailing stop loss
 input double               TrailingStopProfit = 0.5;    // How much the price should drop to close the position above the profit
-input uint                 inNuOfCandlesForSL = 3;      // How much candles used to calculate the stop loss level (min or max of price among them)
+input bool                 inUseCandlesforSL = true;    // Enable using candles for SL setting, othwerise using the mid MA
+input uint                 inNuOfCandlesForSL = 3;      // How much candles used to calculate the stop loss level
 
 input group "Moving average Indicator and RSI Inputs"
 input int                  RsiPeriod=10;                 // Period of RSI  
@@ -144,21 +145,18 @@ void checkForTradeChance()
    double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double askPrice = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
 
-   if (getRsiRangeOk() == true)
+   if((MAI_getMovingAverageVote(askPrice) == BUY_OKAY) && (getRsiVote() == BUY_OKAY))
    {
-      if(MAI_getMovingAverageVote(askPrice) == BUY_OKAY)
-      {
-         Print("Buying ...");
-         handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
-      }
-  
-      if(MAI_getMovingAverageVote(bidPrice) == SELL_OKAY)
-      {
-         Print("Selling ...");
-         handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
-      }
+      Print("Buying. RSI,",getRsiValue());
+      handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
    }
-        
+
+   if((MAI_getMovingAverageVote(bidPrice) == SELL_OKAY) && (getRsiVote() == SELL_OKAY))
+   {
+      Print("Selling. RSI,",getRsiValue());
+      handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
+   }
+    
   }
 
 //+-------------------------------------------------------------------------------------+
@@ -222,25 +220,40 @@ bool getTimeOk()
   }
 
 //+-------------------------------------------------------------------------------------+
-//|  Return the Okay from RSI range prespective                                         |
+//|  Return the vote of RSI                                                             |
 //+-------------------------------------------------------------------------------------+
-bool getRsiRangeOk()
+int getRsiVote()
   {
-   bool ret = false;
+   int ret = NO_SELL_BUY;
    
    double rsi[];
    CopyBuffer(handleRsi,MAIN_LINE,1,1,rsi); // fetch the last RSI value (current one)
    
-   if((rsi[0] < 80) && (rsi[0] > 20))
+   if(rsi[0] < 50)
    {
-      ret = true;
+      ret = SELL_OKAY;
+   }
+   else if(rsi[0] > 50)
+   {
+      ret = BUY_OKAY;
    }
    else
    {
-      ret = false;
    }
    
    return ret;
   }
+  
+  //+-------------------------------------------------------------------------------------+
+//|  Return the vote of RSI                                                             |
+//+-------------------------------------------------------------------------------------+
+double getRsiValue()
+  {
+   
+   double rsi[];
+   CopyBuffer(handleRsi,MAIN_LINE,1,1,rsi); // fetch the last RSI value (current one)   
+   return rsi[0];
+  }
+  
 //+------------------------------------------------------------------+
 //+------------------------------------------------------------------+

@@ -120,7 +120,7 @@ void OPC_cntrlOpenPositions(void)
             double deltaProfit = strCurrentPositions[i].positionMaxProfit - strCurrentPositions[i].positionCurProfit; // Delta of the price between maximum profit and current profit
             double actualCurProfit = strCurrentPositions[i].positionCurProfit - MathAbs(strCurrentPositions[i].swap);
             
-            if(((actualCurProfit > requiredProfit) && (deltaProfit >= TrailingStopProfit)) || (inLoss == true))
+            if(((actualCurProfit >= requiredProfit) && (deltaProfit >= TrailingStopProfit)) || (inLoss == true))
             {
                if(handleTrade.PositionClose(curTicket) == true)
                {  
@@ -211,14 +211,31 @@ void fillNewID(long id)
          // If we are buying of selling
          if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == BUY_OKAY)
          {
-            int indexLowestCandle =  iLowest(_Symbol,PERIOD_CURRENT,MODE_LOW,inNuOfCandlesForSL,1);
-            strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,indexLowestCandle) - (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
+            if(inUseCandlesforSL == true)
+            {  
+               int indexLowestCandle =  iLowest(_Symbol,PERIOD_CURRENT,MODE_LOW,inNuOfCandlesForSL,1);
+               strCurrentPositions[curPositionIndex].stopLoss = iLow(_Symbol,PERIOD_CURRENT,indexLowestCandle) - (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
+            }
+            else
+            {
+               strCurrentPositions[curPositionIndex].stopLoss = MAI_getMovingAverageSL();
+            }
+            
+            
          }
          
          else if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == SELL_OKAY)
          {
-            int indexHighestCandle =  iHighest(_Symbol,PERIOD_CURRENT,MODE_HIGH,inNuOfCandlesForSL,1);
-            strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,indexHighestCandle) + (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
+            if(inUseCandlesforSL == true)
+            {
+               int indexHighestCandle =  iHighest(_Symbol,PERIOD_CURRENT,MODE_HIGH,inNuOfCandlesForSL,1);
+               strCurrentPositions[curPositionIndex].stopLoss  = iHigh(_Symbol,PERIOD_CURRENT,indexHighestCandle) + (iSpread(_Symbol,PERIOD_CURRENT,1) * Point());
+            }
+            else
+            {
+               strCurrentPositions[curPositionIndex].stopLoss = MAI_getMovingAverageSL();
+            }
+            
          }
          else
          {
