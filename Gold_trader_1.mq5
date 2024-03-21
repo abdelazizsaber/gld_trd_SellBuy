@@ -28,10 +28,10 @@ double previousProfit[10] = {0}; // Assuming that maximum number of positions ca
 input group "Trading Inputs"
 input double               lotSizeBuy = 0.02;           // Lot size to open BUY position
 input double               lotSizeSell = 0.01;          // Lot size to open SELL position
-input int                  maxNuOfPositions = 5;        // Maximum number of positions can exist together
-input double               requiredProfit = 3;          // The minimum profit required from the position
+input int                  maxNuOfPositions = 1;        // Maximum number of positions can exist together
+input double               requiredProfit = 0.5;          // The minimum profit required from the position
 input bool                 trailingStopLoss = true;     // Enable trailing stop loss
-input double               TrailingStopProfit = 0.5;    // How much the price should drop to close the position above the profit
+input double               TrailingStopProfit = 0.2;    // How much the price should drop to close the position above the profit
 input bool                 inUseCandlesforSL = true;    // Enable using candles for SL setting, othwerise using the mid MA
 input uint                 inNuOfCandlesForSL = 3;      // How much candles used to calculate the stop loss level
 
@@ -144,14 +144,15 @@ void checkForTradeChance()
   
    double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double askPrice = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
-
-   if((MAI_getMovingAverageVote(askPrice) == BUY_OKAY) && (getRsiVote() == BUY_OKAY))
+   int curMAVote = MAI_getMovingAverageVote();   
+  
+   if((curMAVote == BUY_OKAY) && (getRsiVote() == BUY_OKAY))
    {
       Print("Buying. RSI,",getRsiValue());
       handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
    }
 
-   if((MAI_getMovingAverageVote(bidPrice) == SELL_OKAY) && (getRsiVote() == SELL_OKAY))
+   if((curMAVote == SELL_OKAY) && (getRsiVote() == SELL_OKAY))
    {
       Print("Selling. RSI,",getRsiValue());
       handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
@@ -164,59 +165,18 @@ void checkForTradeChance()
 //+-------------------------------------------------------------------------------------+
 bool getTimeOk()
   {
-   bool ret = true;
-
-
+   bool ret = false;
 
 // get the current time
    MqlDateTime strDateTime;
    TimeToStruct(TimeGMT(),strDateTime);
 
-   if(strDateTime.hour == 22) // Start of Sydeny session
+   if((strDateTime.hour >= 7) && (strDateTime.hour <= 20)) // Trade on EU and USA zones
      {
-      ret = false;
+      ret = true;
      }
-
-   if(strDateTime.hour == 7) // End of Sydeny session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 0) // Start of Tokoyo session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 9) // End of Tokoyo session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 8) // Start of London session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 17) // End of London session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 13) // Start of New york session
-     {
-      ret = false;
-     }
-
-   if(strDateTime.hour == 21) // End of New York session
-     {
-      ret = false;
-     }
-
-
-
-
-
-   return (true);
+     
+   return ret;
   }
 
 //+-------------------------------------------------------------------------------------+

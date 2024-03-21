@@ -145,7 +145,9 @@ void OPC_cntrlOpenPositions(void)
          }
       } 
      
-      Comment(StringFormat("id = %G\ncurProfit = %G\nmaxProfit = %G",strCurrentPositions[0].positionID,strCurrentPositions[0].positionCurProfit,strCurrentPositions[0].positionMaxProfit));
+      long currentSpreadPoints = SymbolInfoInteger(Symbol(), SYMBOL_SPREAD);
+      
+      Comment(StringFormat("id = %G\ncurProfit = %G\nmaxProfit = %G\ncurSpread = %G",strCurrentPositions[0].positionID,strCurrentPositions[0].positionCurProfit,strCurrentPositions[0].positionMaxProfit),currentSpreadPoints);
 
 
   }  
@@ -208,8 +210,10 @@ void fillNewID(long id)
          strCurrentPositions[curPositionIndex].swap = curSwap;
          strCurrentPositions[curPositionIndex].empty = false;
          
+         int curMAVote = MAI_getMovingAverageVote();
+         
          // If we are buying of selling
-         if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == BUY_OKAY)
+         if(curMAVote == BUY_OKAY)
          {
             if(inUseCandlesforSL == true)
             {  
@@ -224,7 +228,7 @@ void fillNewID(long id)
             
          }
          
-         else if(MAI_getMovingAverageVote(SymbolInfoDouble(_Symbol,SYMBOL_BID)) == SELL_OKAY)
+         else if(curMAVote == SELL_OKAY)
          {
             if(inUseCandlesforSL == true)
             {
