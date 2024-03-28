@@ -18,28 +18,30 @@
 //| Global variables                                                 |
 //+------------------------------------------------------------------+
 int handleRsi;
+int handleAtr;
+int handleAtrThreshold;
 CTrade handleTrade;
 datetime lastbar_timeopen;
 double previousProfit[10] = {0}; // Assuming that maximum number of positions cannot exceed 10
+double curTp = 0;
 
 //+------------------------------------------------------------------+
 //| Input parameters                                                 |
 //+------------------------------------------------------------------+
 input group "Trading Inputs"
 input double               lotSizeBuy = 0.02;           // Lot size to open BUY position
-input double               lotSizeSell = 0.01;          // Lot size to open SELL position
-input int                  maxNuOfPositions = 1;        // Maximum number of positions can exist together
-input double               requiredProfit = 0.5;          // The minimum profit required from the position
+input double               lotSizeSell = 0.02;          // Lot size to open SELL position
 input bool                 trailingStopLoss = true;     // Enable trailing stop loss
-input double               TrailingStopProfit = 0.2;    // How much the price should drop to close the position above the profit
-input bool                 inUseCandlesforSL = true;    // Enable using candles for SL setting, othwerise using the mid MA
-input uint                 inNuOfCandlesForSL = 3;      // How much candles used to calculate the stop loss level
 
-input group "Moving average Indicator and RSI Inputs"
+input group "Moving average Indicator and RSI Inputs and ATR"
 input int                  RsiPeriod=10;                 // Period of RSI  
 input int                  inFastMaPeriod=3;             // Period of fast smoothing average filter
 input int                  inMiddleMaPeriod=21;          // Period of Middle smoothing average filter
 input int                  inSlowMaPeriod=50;            // Period of slow smoothing average filter
+input int                  AtrPeriod=14;                 // Period of ATR
+input double               AtrMultiplier=2;              // Multiplier of ATR for setting SL 
+input double               TPinPoints = 100;             // Required TP (in points))
+input double               ATRthreshold = 1;             // Don't place trades below this ATR value
 
 
 //+------------------------------------------------------------------+
@@ -48,6 +50,8 @@ input int                  inSlowMaPeriod=50;            // Period of slow smoot
 int OnInit()
   {
    handleRsi = iRSI(_Symbol,PERIOD_CURRENT,RsiPeriod,PRICE_CLOSE);
+   handleAtr = iATR(_Symbol,PERIOD_CURRENT,AtrPeriod);
+   handleAtrThreshold = iATR(_Symbol,PERIOD_CURRENT,3);
    MAI_init();
    OPC_init();
 
@@ -69,13 +73,16 @@ void OnTick()
 
    int positions = PositionsTotal();
 
-   if((isNewBar(false) == true) && (positions < maxNuOfPositions) && (getTimeOk()==true)) // Process the bar only once and when there is no enough existing orders
+   if((isNewBar(false) == true) && (positions == 0) && (getTimeOk()==true)) // Process the bar only once and when there is no enough existing orders
      {
       checkForTradeChance();
      }
 
-   OPC_fillPositionsData();
-   OPC_cntrlOpenPositions();
+   if((positions != 0) && (trailingStopLoss == true))
+   {
+      OPC_cntrlOpenPositions(); // Perform Trailing stop loss
+   }
+   
   }
 //+------------------------------------------------------------------+
 //| Trade function                                                   |
@@ -145,17 +152,35 @@ void checkForTradeChance()
    double bidPrice = SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double askPrice = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
    int curMAVote = MAI_getMovingAverageVote();   
+   
+   double atr[];
+   CopyBuffer(handleAtr,MAIN_LINE,1,1,atr); // fetch the last RSI value (current one)
+   double slInPoints = 100 * AtrMultiplier * (atr[0]); // in points
+   double tpInPoints = TPinPoints;
+   
+   double pricePerPoint =  Point();
+   
+   
+   // TODO: Add a way to detect stagnation and to avoid trade in it
+   double atrThreshold[];
+   CopyBuffer(handleAtrThreshold,MAIN_LINE,1,1,atrThreshold); // fetch the last RSI value (current one)
+   
+   // TODO: Add a way to avoid trading with the price is going downwards
   
-   if((curMAVote == BUY_OKAY) && (getRsiVote() == BUY_OKAY))
+   if((curMAVote == BUY_OKAY) && (getRsiVote() == BUY_OKAY) && (atrThreshold[0] >= ATRthreshold))
    {
       Print("Buying. RSI,",getRsiValue());
-      handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,0,0);
+      curTp = askPrice + (tpInPoints * Point());
+      double sl = askPrice - (slInPoints * Point()); 
+      handleTrade.Buy(lotSizeBuy,_Symbol,askPrice,sl,curTp);
    }
 
-   if((curMAVote == SELL_OKAY) && (getRsiVote() == SELL_OKAY))
+   if((curMAVote == SELL_OKAY) && (getRsiVote() == SELL_OKAY) && (atrThreshold[0] >= ATRthreshold))
    {
       Print("Selling. RSI,",getRsiValue());
-      handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,0,0);
+      curTp = bidPrice - (tpInPoints * Point());
+      double sl = bidPrice + (slInPoints * Point()); 
+      handleTrade.Sell(lotSizeSell,_Symbol,bidPrice,sl,curTp);
    }
     
   }
@@ -176,7 +201,7 @@ bool getTimeOk()
       ret = true;
      }
      
-   return ret;
+   return true;
   }
 
 //+-------------------------------------------------------------------------------------+
